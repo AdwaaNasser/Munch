@@ -1023,3 +1023,23 @@ S/* LANA'S addRECIPES PAGE STYLES** */
     font-size: 14px;
     text-align: center;
 }
+
+.ingredient-row,
+.instruction-row {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.mini-delete {
+  background: #8E2E0D;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 5px 10px;
+  cursor: pointer;
+}
+
+.mini-delete:hover {
+  background: #6f2208;
+}

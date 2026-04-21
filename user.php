@@ -112,9 +112,9 @@ $stmtFavourites = executeQuery(
 $favourites = $stmtFavourites->fetchAll();
 
 // Profile photo path
-$profilePhoto = !empty($user['photoFileName'])
-    ? 'images/' . htmlspecialchars($user['photoFileName'])
-    : 'images/profile.png';
+$profilePhoto = !empty($user['userPhoto'])
+    ? 'images/' . htmlspecialchars($user['userPhoto'])
+    : 'profile.png';
 ?>
 
 <!DOCTYPE html>
@@ -126,8 +126,6 @@ $profilePhoto = !empty($user['photoFileName'])
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="home-page">
-
-```
 <div class="page My-recipes-card" style="height: auto; padding: 40px; overflow-y: auto;">
 
   
@@ -148,7 +146,7 @@ $profilePhoto = !empty($user['photoFileName'])
                 <p><strong>Email:</strong> <?= htmlspecialchars($user['emailAddress']) ?></p>
             </div>
             <div class="photo-frame">
-                <img src="<?= $profilePhoto ?>" alt="Profile">
+                <img src="images/<?= $profilePhoto ?>" alt="Profile">
             </div>
         </div>
     </div>
@@ -230,6 +228,7 @@ $profilePhoto = !empty($user['photoFileName'])
     <br>
     <h2 class="section-title">My Favourite Recipes &#10084;</h2>
 
+
     <?php if (!empty($favourites)): ?>
         <table class="recipes-table">
             <thead>
@@ -292,7 +291,6 @@ $profilePhoto = !empty($user['photoFileName'])
         </div>
     </div>
 </footer>
-```
 
 </body>
 </html>

@@ -13,12 +13,16 @@ $userType = $_SESSION['user_type'] ?? 'user';
 // =========================
 // 1. جلب بيانات الوصفة + صاحبها
 // =========================
-$sql = "SELECT r.*, u.firstName, u.lastName, u.photoFileName,
-               c.categoryName
-        FROM recipe r
-        JOIN user u ON r.userID = u.id
-        JOIN recipecategory c ON r.categoryID = c.id
-        WHERE r.id = ?";
+$sql = "SELECT 
+        r.*, 
+        u.firstName, 
+        u.lastName, 
+        u.photoFileName AS userPhoto,
+        c.categoryName
+FROM recipe r
+JOIN user u ON r.userID = u.id
+JOIN recipecategory c ON r.categoryID = c.id
+WHERE r.id = ?";
 $stmt = $pdo->prepare($sql);
 $stmt->execute([$recipeID]);
 $recipe = $stmt->fetch();
@@ -95,7 +99,7 @@ $isReported = $stmt->rowCount() > 0;
 <div class="creator-actions">
 
   <div class="creator">
-    <img src="images/profile/<?= $recipe['photoFileName'] ?>">
+    <img src="images/<?= $recipe['userPhoto'] ?>">
     <div>
       <strong><?= $recipe['firstName'] . " " . $recipe['lastName'] ?></strong>
       <small><?= $recipe['categoryName'] ?></small>
@@ -128,7 +132,7 @@ $isReported = $stmt->rowCount() > 0;
     <form action="reportProcess.php" method="POST">
       <input type="hidden" name="recipeID" value="<?= $recipeID ?>">
       <button class="action-btn danger" <?= $isReported ? 'disabled' : '' ?>>
-        ⚠ <?= $isReported ? 'Reported' : 'Report' ?>
+        ⚠️ <?= $isReported ? 'Reported' : 'Report' ?>
       </button>
     </form>
 
@@ -147,8 +151,7 @@ $isReported = $stmt->rowCount() > 0;
 <!-- Ingredients + Steps -->
 <!-- ===================== -->
 <div class="recipe-sections">
-
-  <div class="recipe-box">
+<div class="recipe-box">
     <h2>Ingredients</h2>
     <ul>
       <?php foreach($ingredients as $ing): ?>
@@ -173,7 +176,7 @@ $isReported = $stmt->rowCount() > 0;
 <!-- ===================== -->
 <?php if (!empty($recipe['videoFilePath'])): ?>
 <a href="<?= $recipe['videoFilePath'] ?>" class="video-box exciting-video">
-  <span class="play-icon">▶</span>
+  <span class="play-icon">▶️</span>
   <div>
     <strong>Watch the Baking Process</strong>
     <small>See step by step</small>

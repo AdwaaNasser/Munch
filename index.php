@@ -17,7 +17,7 @@
 
   <!-- Content -->
   <div class="content">
-  <img src="images/Bakery1.png" alt="Munch Bakery logo" class="home-logo">
+  <img src="images/Bakery.png" alt="Munch Bakery logo" class="home-logo">
     <h1>Munch</h1>
     <h2>Fresh Daily</h2>
     <p>

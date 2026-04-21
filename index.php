@@ -12,12 +12,12 @@
 
 
   <!-- Background Images -->
-  <img class="bg-img left" src="bread3.PNG" alt="">
-  <img class="bg-img right" src="bread4.PNG" alt="">
+  <img class="bg-img left" src="images/bread3.png" alt="">
+  <img class="bg-img right" src="images/bread4.png" alt="">
 
   <!-- Content -->
   <div class="content">
-  <img src="Bakery1.png" alt="Munch Bakery logo" class="home-logo">
+  <img src="images/Bakery1.png" alt="Munch Bakery logo" class="home-logo">
     <h1>Munch</h1>
     <h2>Fresh Daily</h2>
     <p>
@@ -45,7 +45,7 @@
 
         <div class="footer-col center">
           <div class="brand">
-            <img src="Bakery1.png" alt="Bakery logo">
+            <img src="images/Bakery1.png" alt="Bakery logo">
           </div>
           <small>©2026 Munch. All rights reserved</small>
         </div>

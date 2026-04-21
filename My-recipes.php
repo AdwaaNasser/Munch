@@ -1,10 +1,23 @@
-<?php
+<?php /*
 require_once 'DBconfig.php';
 
 $stmt = $pdo->query("SELECT * FROM recipe");
 $recipes = $stmt->fetchAll();
+*/
+?>
 
-?> 
+
+<?php
+require_once 'DBconfig.php';
+requireLogin();
+$userID = $_SESSION['user_id'];
+
+$stmt = $pdo->prepare("SELECT * FROM recipe WHERE userID = ?");
+$stmt->execute([$userID]);
+$recipes = $stmt->fetchAll();
+?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>

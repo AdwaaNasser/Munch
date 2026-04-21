@@ -51,7 +51,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // رجوع
-    header("Location: My-recipe.php");
+    header("Location: My-recipes.php");
     exit();
 }
 ?>

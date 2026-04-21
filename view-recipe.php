@@ -1,84 +1,85 @@
 <?php
 require_once 'DBconfig.php';
 
-session_start();
-$userID = $_SESSION['user_id'] ?? 1; // مؤقت
-
-$id = $_GET['id'] ?? 0;
-
-  // Add comment
-if (isset($_POST['add_comment'])) {
-    $comment = $_POST['comment'];
-
-    if (!empty($comment)) {
-        $stmt = $pdo->prepare("INSERT INTO comment (recipeID, userID, comment, date) VALUES (?,?,?,NOW())");
-        $stmt->execute([$id, $userID, $comment]);
-    }
+// لازم يكون فيه ID
+if (!isset($_GET['id'])) {
+    die("Invalid Recipe ID");
 }
 
-//Like 
+$recipeID = $_GET['id'];
+$userID = $_SESSION['user_id'] ?? null;
+$userType = $_SESSION['user_type'] ?? 'user';
 
-if (isset($_POST['like'])) {
-    $stmt = $pdo->prepare("SELECT * FROM likes WHERE userID=? AND recipeID=?");
-    $stmt->execute([$userID, $id]);
-
-    if ($stmt->rowCount() == 0) {
-        $stmt = $pdo->prepare("INSERT INTO likes (userID, recipeID) VALUES (?,?)");
-        $stmt->execute([$userID, $id]);
-    }
-}
-
-// Favourit
-if (isset($_POST['fav'])) {
-    $stmt = $pdo->prepare("SELECT * FROM favourites WHERE userID=? AND recipeID=?");
-    $stmt->execute([$userID, $id]);
-
-    if ($stmt->rowCount() == 0) {
-        $stmt = $pdo->prepare("INSERT INTO favourites (userID, recipeID) VALUES (?,?)");
-        $stmt->execute([$userID, $id]);
-    }
-}
-
-// recipe + user + category
-$sql = "SELECT r.*, c.categoryName, u.firstName, u.lastName, u.photoFileName AS userPhoto
+// =========================
+// 1. جلب بيانات الوصفة + صاحبها
+// =========================
+$sql = "SELECT r.*, u.firstName, u.lastName, u.photoFileName,
+               c.categoryName
         FROM recipe r
-        JOIN recipecategory c ON r.categoryID = c.id
         JOIN user u ON r.userID = u.id
+        JOIN recipecategory c ON r.categoryID = c.id
         WHERE r.id = ?";
-
 $stmt = $pdo->prepare($sql);
-$stmt->execute([$id]);
+$stmt->execute([$recipeID]);
 $recipe = $stmt->fetch();
 
-// ingredients
+if (!$recipe) {
+    die("Recipe not found");
+}
+
+// =========================
+// 2. Ingredients
+// =========================
 $stmt = $pdo->prepare("SELECT * FROM ingredients WHERE recipeID=?");
-$stmt->execute([$id]);
+$stmt->execute([$recipeID]);
 $ingredients = $stmt->fetchAll();
 
-// instructions
+// =========================
+// 3. Instructions
+// =========================
 $stmt = $pdo->prepare("SELECT * FROM instructions WHERE recipeID=? ORDER BY stepOrder");
-$stmt->execute([$id]);
+$stmt->execute([$recipeID]);
 $steps = $stmt->fetchAll();
 
-// comments
-$stmt = $pdo->prepare("SELECT c.comment, u.firstName 
-                       FROM comment c 
-                       JOIN user u ON c.userID = u.id
-                       WHERE c.recipeID=?");
-$stmt->execute([$id]);
+// =========================
+// 4. Comments
+// =========================
+$stmt = $pdo->prepare("
+    SELECT c.*, u.firstName 
+    FROM comment c 
+    JOIN user u ON c.userID = u.id 
+    WHERE recipeID=? ORDER BY date DESC
+");
+$stmt->execute([$recipeID]);
 $comments = $stmt->fetchAll();
 
-// likes count
-$stmt = $pdo->prepare("SELECT COUNT(*) FROM likes WHERE recipeID=?");
-$stmt->execute([$id]);
-$likesCount = $stmt->fetchColumn();
+// =========================
+// 5. Checks (favorites / like / report)
+// =========================
+$isOwner = ($userID == $recipe['userID']);
+$isAdmin = ($userType == 'admin');
+
+// favourite
+$stmt = $pdo->prepare("SELECT * FROM favourites WHERE userID=? AND recipeID=?");
+$stmt->execute([$userID, $recipeID]);
+$isFav = $stmt->rowCount() > 0;
+
+// like
+$stmt = $pdo->prepare("SELECT * FROM likes WHERE userID=? AND recipeID=?");
+$stmt->execute([$userID, $recipeID]);
+$isLiked = $stmt->rowCount() > 0;
+
+// report
+$stmt = $pdo->prepare("SELECT * FROM report WHERE userID=? AND recipeID=?");
+$stmt->execute([$userID, $recipeID]);
+$isReported = $stmt->rowCount() > 0;
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>View Recipe</title>
+<title><?= $recipe['name'] ?></title>
 <link rel="stylesheet" href="style.css">
 </head>
 
@@ -86,38 +87,53 @@ $likesCount = $stmt->fetchColumn();
 
 <div class="recipe-card">
 
-<!-- Title -->
 <h1><?= $recipe['name'] ?></h1>
 
-<!-- Image -->
-<img src="<?= $recipe['photoFileName'] ?>" class="recipe-img">
+<img src="images/<?= $recipe['photoFileName'] ?>" class="recipe-img">
 
-<!-- Creator + Actions -->
+<!-- Creator -->
 <div class="creator-actions">
 
   <div class="creator">
-    <img src="<?= $recipe['userPhoto'] ?>">
+    <img src="images/profile/<?= $recipe['photoFileName'] ?>">
     <div>
       <strong><?= $recipe['firstName'] . " " . $recipe['lastName'] ?></strong>
       <small><?= $recipe['categoryName'] ?></small>
     </div>
   </div>
 
-  <form method="POST" class="recipe-actions">
+  <!-- ===================== -->
+  <!-- Buttons (شرط مهم) -->
+  <!-- ===================== -->
+  <?php if (!$isOwner && !$isAdmin): ?>
+  <div class="recipe-actions">
 
-    <button name="fav" class="action-btn">
-      ♡ Add to favorites
-    </button>
+    <!-- Favourite -->
+    <form action="favProcess.php" method="POST">
+      <input type="hidden" name="recipeID" value="<?= $recipeID ?>">
+      <button class="action-btn" <?= $isFav ? 'disabled' : '' ?>>
+        ♡ <?= $isFav ? 'Added' : 'Add to favorites' ?>
+      </button>
+    </form>
 
-    <button name="like" class="action-btn like">
-      👍 Like (<?= $likesCount ?>)
-    </button>
+    <!-- Like -->
+    <form action="likeProcess.php" method="POST">
+      <input type="hidden" name="recipeID" value="<?= $recipeID ?>">
+      <button class="action-btn like" <?= $isLiked ? 'disabled' : '' ?>>
+        👍 <?= $isLiked ? 'Liked' : 'Like' ?>
+      </button>
+    </form>
 
-    <button class="action-btn danger">
-      ⚠ Report
-    </button>
+    <!-- Report -->
+    <form action="reportProcess.php" method="POST">
+      <input type="hidden" name="recipeID" value="<?= $recipeID ?>">
+      <button class="action-btn danger" <?= $isReported ? 'disabled' : '' ?>>
+        ⚠ <?= $isReported ? 'Reported' : 'Report' ?>
+      </button>
+    </form>
 
-  </form>
+  </div>
+  <?php endif; ?>
 
 </div>
 
@@ -127,20 +143,20 @@ $likesCount = $stmt->fetchColumn();
   <p><?= $recipe['description'] ?></p>
 </div>
 
-<!-- Ingredients + Instructions -->
+<!-- ===================== -->
+<!-- Ingredients + Steps -->
+<!-- ===================== -->
 <div class="recipe-sections">
 
-  <!-- Ingredients -->
   <div class="recipe-box">
     <h2>Ingredients</h2>
     <ul>
       <?php foreach($ingredients as $ing): ?>
-        <li><?= $ing['IngredientQuantity'] ?> - <?= $ing['IngredientName'] ?></li>
+        <li><?= $ing['IngredientQuantity'] . " - " . $ing['IngredientName'] ?></li>
       <?php endforeach; ?>
     </ul>
   </div>
 
-  <!-- Instructions -->
   <div class="recipe-box">
     <h2>Instructions</h2>
     <ol>
@@ -152,35 +168,40 @@ $likesCount = $stmt->fetchColumn();
 
 </div>
 
+<!-- ===================== -->
 <!-- Video -->
-<?php if(!empty($recipe['videoFilePath'])): ?>
-<div class="video-box exciting-video">
+<!-- ===================== -->
+<?php if (!empty($recipe['videoFilePath'])): ?>
+<a href="<?= $recipe['videoFilePath'] ?>" class="video-box exciting-video">
   <span class="play-icon">▶</span>
   <div>
     <strong>Watch the Baking Process</strong>
-    <small><?= $recipe['videoFilePath'] ?></small>
+    <small>See step by step</small>
   </div>
-</div>
+</a>
 <?php endif; ?>
 
+<!-- ===================== -->
 <!-- Comments -->
+<!-- ===================== -->
 <div class="comments">
-  <h2>Comments</h2>
+<h2>Comments</h2>
 
-  <?php foreach($comments as $com): ?>
-    <div class="comment">
-      <strong><?= $com['firstName'] ?>:</strong> <?= $com['comment'] ?>
-    </div>
-  <?php endforeach; ?>
+<?php foreach($comments as $c): ?>
+<div class="comment">
+  <strong><?= $c['firstName'] ?>:</strong> <?= $c['comment'] ?>
+</div>
+<?php endforeach; ?>
 
-  <form method="POST">
-    <textarea name="comment" placeholder="Add your comment"></textarea>
-    <button name="add_comment">Post</button>
-  </form>
+<!-- Add Comment -->
+<form action="addComment.php" method="POST">
+  <input type="hidden" name="recipeID" value="<?= $recipeID ?>">
+  <textarea name="comment" required placeholder="Add your comment"></textarea>
+  <button type="submit">Post</button>
+</form>
 
 </div>
 
 </div>
-
 </body>
 </html>

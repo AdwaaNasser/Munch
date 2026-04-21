@@ -2,7 +2,6 @@
 
 require_once 'DBconfig.php';
 
-//6a Check that the user is a regular user 
 if (!isset($_SESSION['user_id'])) {
     $_SESSION['error_message'] = "Please log in to access this page.";
     header("Location: login.php");
@@ -17,7 +16,7 @@ if ($_SESSION['user_type'] !== 'user') {
 
 $userID = $_SESSION['user_id'];
 
-// 6b Retrieve user information 
+// Retrieve user information 
 $stmt = executeQuery($pdo, "SELECT * FROM User WHERE id = ?", [$userID]);
 $user = $stmt->fetch();
 
@@ -27,7 +26,7 @@ if (!$user) {
     exit();
 }
 
-// 6c Count user's total recipes and total likes 
+//  Count user's total recipes and total likes 
 $stmtRecipeCount = executeQuery(
     $pdo,
     "SELECT COUNT(*) AS totalRecipes FROM Recipe WHERE userID = ?",
@@ -114,8 +113,8 @@ $favourites = $stmtFavourites->fetchAll();
 
 // Profile photo path
 $profilePhoto = !empty($user['photoFileName'])
-    ? 'uploads/profiles/' . htmlspecialchars($user['photoFileName'])
-    : 'profile.png';
+    ? 'images/' . htmlspecialchars($user['photoFileName'])
+    : 'images/profile.png';
 ?>
 
 <!DOCTYPE html>
@@ -129,15 +128,15 @@ $profilePhoto = !empty($user['photoFileName'])
 <body class="home-page">
 
 ```
-<div class="page my-recipes-card" style="height: auto; padding: 40px; overflow-y: auto;">
+<div class="page My-recipes-card" style="height: auto; padding: 40px; overflow-y: auto;">
 
-  //Page Header 
+  
     <div class="page-header">
         <h1>Welcome, <?= htmlspecialchars($user['firstName']) ?></h1>
         <a href="signout.php" class="text-link">Log-out</a>
     </div>
 
-   // 6b User Information Box
+   
     <div class="info-box">
         <div class="info-layout">
             <div>
@@ -160,7 +159,7 @@ $profilePhoto = !empty($user['photoFileName'])
         <p><strong>Total Recipes:</strong> <?= (int)$recipeCount ?></p>
         <p><strong>Total Likes:</strong> <?= (int)$likesCount ?></p>
         <br>
-        <a href="my-recipes.php" class="text-link">Go to My Recipes &rarr;</a>
+        <a href="My-recipes.php" class="text-link">Go to My Recipes &rarr;</a>
     </div>
 
     <!-- ── 6d. Filter by Category ── -->
@@ -177,7 +176,7 @@ $profilePhoto = !empty($user['photoFileName'])
                         </option>
                     <?php endforeach; ?>
                 </select>
-                <button type="submit" class="add-recipe-link filter-btn">Filter</button>
+                <button type="submit" class="addRecipe-link filter-btn">Filter</button>
             </form>
         </div>
     </div>
@@ -201,19 +200,19 @@ $profilePhoto = !empty($user['photoFileName'])
                 <?php foreach ($recipes as $recipe): ?>
                 <tr>
                     <td class="recipe-cell">
-                        <a href="view.php?id=<?= (int)$recipe['id'] ?>">
+                        <a href="view-recipe.php?id=<?= (int)$recipe['id'] ?>">
                             <?= htmlspecialchars($recipe['name']) ?>
                         </a>
                     </td>
                     <td class="recipe-cell">
-                        <img src="uploads/recipes/<?= htmlspecialchars($recipe['photoFileName']) ?>"
+                        <img src="images/<?= htmlspecialchars($recipe['photoFileName']) ?>"
                              alt="<?= htmlspecialchars($recipe['name']) ?>">
                     </td>
                     <td class="recipe-cell">
                         <?= htmlspecialchars($recipe['firstName']) ?>
                         <?= htmlspecialchars($recipe['lastName']) ?>
                         <br>
-                        <img src="uploads/profiles/<?= htmlspecialchars($recipe['userPhoto']) ?>"
+                        <img src="images/<?= htmlspecialchars($recipe['userPhoto']) ?>"
                              alt="Chef" width="40" class="creator-img">
                     </td>
                     <td><?= (int)$recipe['likesCount'] ?></td>
@@ -244,16 +243,16 @@ $profilePhoto = !empty($user['photoFileName'])
                 <?php foreach ($favourites as $fav): ?>
                 <tr>
                     <td class="recipe-cell">
-                        <a href="view.php?id=<?= (int)$fav['id'] ?>">
+                        <a href="view-recipe.php?id=<?= (int)$fav['id'] ?>">
                             <?= htmlspecialchars($fav['name']) ?>
                         </a>
                     </td>
                     <td class="recipe-cell">
-                        <img src="uploads/recipes/<?= htmlspecialchars($fav['photoFileName']) ?>"
+                        <img src="images/<?= htmlspecialchars($fav['photoFileName']) ?>"
                              alt="<?= htmlspecialchars($fav['name']) ?>">
                     </td>
                     <td>
-                        <a href="remove-favourite.php?recipeID=<?= (int)$fav['id'] ?>"
+                        <a href="removeFav.php?recipeID=<?= (int)$fav['id'] ?>"
                            class="text-link">Remove</a>
                     </td>
                 </tr>
@@ -281,7 +280,7 @@ $profilePhoto = !empty($user['photoFileName'])
             </div>
             <div class="footer-col center">
                 <div class="brand">
-                    <img src="Bakery.png" alt="Bakery logo" style="width:120px;">
+                    <img src="images/Bakery1.png" alt="Bakery logo" style="width:120px;">
                 </div>
                 <small>©️2026 Munch. All rights reserved</small>
             </div>

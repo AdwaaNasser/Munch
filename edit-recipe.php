@@ -1,42 +1,9 @@
 <?php
 require_once 'DBconfig.php';
 
-$id = $_GET['id'] ?? $_POST['id'] ?? 0;
+$id = $_GET['id'] ?? 0;
 
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-
-    $name = $_POST['name'];
-    $description = $_POST['description'];
-    $video = $_POST['video'];
-
-    $ingredient_names = $_POST['ingredient_name'];
-    $ingredient_qtys = $_POST['ingredient_qty'];
-    $steps = $_POST['steps'];
-
-    $sql = "UPDATE recipe SET name=?, description=?, videoFilePath=? WHERE id=?";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([$name, $description, $video, $id]);
-
-    $pdo->prepare("DELETE FROM ingredients WHERE recipeID=?")->execute([$id]);
-
-    for($i=0; $i<count($ingredient_names); $i++){
-        $stmt = $pdo->prepare("INSERT INTO ingredients (recipeID, IngredientName, IngredientQuantity) VALUES (?,?,?)");
-        $stmt->execute([$id, $ingredient_names[$i], $ingredient_qtys[$i]]);
-    }
-
-    $pdo->prepare("DELETE FROM instructions WHERE recipeID=?")->execute([$id]);
-
-    for($i=0; $i<count($steps); $i++){
-        $stmt = $pdo->prepare("INSERT INTO instructions (recipeID, step, stepOrder) VALUES (?,?,?)");
-        $stmt->execute([$id, $steps[$i], $i+1]);
-    }
-
-    // back
-    header("Location: My-recipes.php");
-    exit();
-}
-
-// recipe
+// جلب البيانات
 $stmt = $pdo->prepare("SELECT * FROM recipe WHERE id=?");
 $stmt->execute([$id]);
 $recipe = $stmt->fetch();
@@ -50,6 +17,9 @@ $ingredients = $stmt->fetchAll();
 $stmt = $pdo->prepare("SELECT * FROM instructions WHERE recipeID=? ORDER BY stepOrder");
 $stmt->execute([$id]);
 $steps = $stmt->fetchAll();
+
+// categories
+$categories = $pdo->query("SELECT * FROM recipecategory")->fetchAll();
 ?>
 
 <!DOCTYPE html>
@@ -63,95 +33,115 @@ $steps = $stmt->fetchAll();
 <body class="edit-page">
 
 <div class="form-card">
-
 <h1>Edit Recipe</h1>
 
-<form method="POST">
+<form action="EditRecipeProcess.php" method="POST" enctype="multipart/form-data">
 
 <input type="hidden" name="id" value="<?= $recipe['id'] ?>">
 
 <!-- Name -->
-<label>Recipe Name</label>
+<div class="form-group">
+<label>Name *</label>
 <input type="text" name="name" value="<?= $recipe['name'] ?>" required>
+</div>
+
+<!-- Category -->
+<div class="form-group">
+<label>Category *</label>
+<select name="category" required>
+<?php foreach($categories as $cat): ?>
+<option value="<?= $cat['id'] ?>" 
+<?= $cat['id']==$recipe['categoryID'] ? 'selected' : '' ?>>
+<?= $cat['categoryName'] ?>
+</option>
+<?php endforeach; ?>
+</select>
+</div>
 
 <!-- Description -->
-<label>Description</label>
+<div class="form-group">
+<label>Description *</label>
 <textarea name="description" required><?= $recipe['description'] ?></textarea>
+</div>
 
-<!-- Ingredients -->
-<h3>Ingredients</h3>
+<!-- Current Image -->
+<div class="form-group">
+<label>Current Photo</label><br>
+<img src="images/<?= $recipe['photoFileName'] ?>" width="100">
+</div>
+
+<!-- Upload new -->
+<div class="form-group">
+<label>Upload New Photo (optional)</label>
+<input type="file" name="photo">
+</div>
+
+<!-- INGREDIENTS -->
+<h2 style="color:#9C0300;">Ingredients *</h2>
 
 <div id="ingredients">
 
-<?php foreach($ingredients as $index => $ing): ?>
+<?php foreach($ingredients as $ing): ?>
 <div class="ingredient-row">
-  <input type="text" name="ingredient_name[]" value="<?= $ing['IngredientName'] ?>" required>
-  <input type="text" name="ingredient_qty[]" value="<?= $ing['IngredientQuantity'] ?>" required>
-
-  <?php if($index != 0): ?>
-    <button type="button" class="mini-delete" onclick="removeIngredient(this)">✕</button>
-  <?php endif; ?>
+<input type="text" name="ingredient_name[]" value="<?= $ing['IngredientName'] ?>" required>
+<input type="text" name="ingredient_qty[]" value="<?= $ing['IngredientQuantity'] ?>" required>
+<button type="button" class="mini-delete" onclick="removeRow(this)">✕</button>
 </div>
 <?php endforeach; ?>
 
 </div>
 
-<button type="button" class="action-btn" onclick="addIngredient()">
-  + Add Ingredient
-</button>
+<button type="button" class="action-btn" onclick="addIngredient()">+ Add another ingredient</button>
 
-<!-- Instructions -->
-<h3>Instructions</h3>
+
+<!-- INSTRUCTIONS -->
+<h2 style="color:#9C0300;">Instructions *</h2>
 
 <div id="instructions">
 
-<?php foreach($steps as $index => $step): ?>
+<?php foreach($steps as $step): ?>
 <div class="instruction-row">
-  <input type="text" name="steps[]" value="<?= $step['step'] ?>" required>
-
-  <?php if($index != 0): ?>
-    <button type="button" class="mini-delete" onclick="removeStep(this)">✕</button>
-  <?php endif; ?>
+<input type="text" name="steps[]" value="<?= $step['step'] ?>" required>
+<button type="button" class="mini-delete" onclick="removeRow(this)">✕</button>
 </div>
 <?php endforeach; ?>
 
 </div>
 
-<button type="button" class="action-btn" onclick="addStep()">
-  + Add Step
-</button>
+<button type="button" class="action-btn" onclick="addStep()">+ Add another step</button>
+
 <!-- Video -->
-<label>Video Path</label>
+<div class="form-group">
+<label>Video URL</label>
 <input type="text" name="video" value="<?= $recipe['videoFilePath'] ?>">
+</div>
 
 <button type="submit">Save Changes</button>
 
 </form>
-
 </div>
 
 <script>
-function addIngredient() {
+// حذف صف
+function removeRow(btn){
+    btn.parentElement.remove();
+}
 
+// إضافة مكون
+function addIngredient() {
     const div = document.createElement("div");
     div.className = "ingredient-row";
 
     div.innerHTML = `
         <input type="text" name="ingredient_name[]" placeholder="Ingredient Name" required>
         <input type="text" name="ingredient_qty[]" placeholder="Quantity" required>
-        <button type="button" class="mini-delete" onclick="removeIngredient(this)">✕</button>
+        <button type="button" class="mini-delete" onclick="removeRow(this)">✕</button>
     `;
 
     document.getElementById("ingredients").appendChild(div);
 }
 
-function removeIngredient(button) {
-    button.parentElement.remove();
-}
-
-
-// ===== Instructions =====
-
+// إضافة خطوة
 let stepCount = <?= count($steps) ?>;
 
 function addStep() {
@@ -162,17 +152,12 @@ function addStep() {
 
     div.innerHTML = `
         <input type="text" name="steps[]" placeholder="Step ${stepCount}" required>
-        <button type="button" class="mini-delete" onclick="removeStep(this)">✕</button>
+        <button type="button" class="mini-delete" onclick="removeRow(this)">✕</button>
     `;
 
     document.getElementById("instructions").appendChild(div);
 }
-
-function removeStep(button) {
-    button.parentElement.remove();
-}
 </script>
-
 
 </body>
 </html>
